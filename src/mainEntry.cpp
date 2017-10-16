@@ -9,21 +9,27 @@
 //COMPILE LINE!
 // nvcc -o ./bin/KSOut KS1D_SweptShared.cu -gencode arch=compute_35,code=sm_35 -lm -restrict -Xcompiler -fopenmp --ptxas-options=-v
 
+#include "mainGlobals.h"
 #include "wave1D.h"
 
-// SOME OPTION TO JUST OUTPUT l2 norm of difference
+#define GPUNUM          0
 
+// SOME OPTION TO JUST OUTPUT l2 norm of difference
 int main(int argc, char *argv[])
 {
-    // Command line input variables.
-    cGlob.dt = argv[1]; 
+    std::string ext = ".json";
+    std::string sout = argv[3];
+    sout.append(ext); 
+    std::string scheme = argv[1];
+
+    readIn(argc, argv);
+    initConsts();
 
     cudaSetDevice(GPUNUM);
     cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
-
     states *state;
 
-    cudaHostAlloc((void **) &state, nX*sizeof(states), cudaHostAllocDefault);    
+    cudaHostAlloc((void **) &state, nX*cGlob.szState, cudaHostAllocDefault);    
     
     for (int k=0; k<2; k++)
     {
@@ -34,7 +40,8 @@ int main(int argc, char *argv[])
     }
 
 	// This puts the constant part of the equation in constant memory
-	cudaMemcpyToSymbol(deqConsts, &heqConsts, sizeof(eqConsts));
+    cudaMemcpyToSymbol(deqConsts, &heqConsts, sizeof(eqConsts));
+    int tstep = TSTEPI;
 
     cudaEvent_t start, stop;
 	float timed;
@@ -44,14 +51,18 @@ int main(int argc, char *argv[])
     
 	// Call the kernels until you reach the iteration limit.
 	double tfm;
-	if (scheme)
+	if (!scheme.compare("C"))
     {
-		tfm = sweptWrapper();
-	}
-	else
-	{
-		tfm = classicWrapper();
-	}
+		tfm = sweptWrapper(state, &tstep);
+    }
+    else if (!scheme.compare("C"))
+    {
+        tfm = classicWrapper(state, &tstep);
+    }
+    else
+    {
+        std::cerr << "Incorrect or no scheme given" << std::endl;
+    }
 
 	// Show the time and write out the final condition.
 	cudaEventRecord(stop, 0);
@@ -66,14 +77,32 @@ int main(int argc, char *argv[])
 
     cout << n_timesteps << " timesteps" << endl;
     cout << "Averaged " << per_ts << " microseconds (us) per timestep" << endl;
+    std::string tpath = pth + "/t" + fspec + ext;
 
-    if (argc>7)
-    {
-        ofstream ftime;
-        ftime.open(argv[8],ios::app);
-        ftime << dv << "\t" << tpb << "\t" << per_ts << endl;
-        ftime.close();
+    try {
+        std::ifstream tjson(tpath, std::ifstream::in);
+        tjson >> timing;
+        tjson.close();
     }
+    catch (...) {}
 
+    std::string tpbs = std::to_string(cGlob.tpb);
+    std::string nXs = std::to_string(cGlob.nX);
+    std::cout << cGlob.gpuA << std::endl;
+
+    std::ofstream timejson(tpath.c_str(), std::ofstream::trunc);
+    timing[tpbs][nXs] = per_ts;
+    timejson << timing;
+    timejson.close();
+
+    // end timing out
+
+    std::string spath = pth + "/s" + fspec + "_" + std::to_string(ranks[1]) + ext;
+    std::ofstream soljson(spath.c_str(), std::ofstream::trunc);
+    solution["meta"] = inJ;
+    soljson << solution;
+    soljson.close();
+
+    cudaFreeHost(state);
     return 0;
 }
