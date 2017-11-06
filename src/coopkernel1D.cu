@@ -10,6 +10,8 @@
 
 #include "waveConsts.h"
 
+class cooperative:
+
 __device__  
 void stepUpdate(states *state, int idx[3], int tstep)
 {

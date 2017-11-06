@@ -1,6 +1,8 @@
 #ifndef MGLOB_H
 #define MGLOB_H
 
+
+
 jsons inJ;
 jsons solution;
 jsons timing;
