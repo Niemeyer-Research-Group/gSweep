@@ -6,7 +6,6 @@
     This file is distribued under the MIT License.  See LICENSE at top level of directory or: <https://opensource.org/licenses/MIT>.
 */
 
-// Fuckin duh.  You can't do it like this you need an array!
 
 #include "waveConsts.h"
 
@@ -134,7 +133,7 @@ void downTriangle(states *statein, states *stateout, int tstep)
 }
 
 __global__
-void wholeTriangle(states *statein, states *stateout, int tstep, int dir)
+void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
 {
     extern __shared__ states tState[];
 
