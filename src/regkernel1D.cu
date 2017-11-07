@@ -7,6 +7,7 @@
 */
 
 #include "waveConsts.h"
+#include "mainGlobals.h"
 
 // Leapfrog!
 __device__  
@@ -22,7 +23,7 @@ __device__ void boundary(int gid, int tid, int *idxes)
     idxes[1] = tid;
     if (deqConsts.typ == 0)
     {
-        idxes[0] = (gid) ? tid : deqconsts.idxF;
+        idxes[0] = (gid) ? tid : deqConsts.idxF;
         idxes[2] = (gid == deqConsts.idxF) ? 0 : tid;   
     }
     // // Reflective
@@ -38,7 +39,7 @@ void classicStep(states *state, int ts)
 {
     int gid = blockDim.x * blockIdx.x + threadIdx.x;
     int idxes[3];
-    boundary(gid, gid, &idxes);
+    boundary(gid, gid, &idxes[0]);
     stepUpdate(state, idxes, ts);
 }
 
@@ -53,15 +54,15 @@ void sweepRead(states *tState, states *statein, int gid, int tid, int bd)
     {
         if (gid == 0)
         {
-            tState[0] = statesin[deqConsts.idxF];
+            tState[0] = statein[deqConsts.idxF];
         }   
         else if (gid == deqConsts.idxF)
         {
-            tState[blockDim.x + 1] = statesin[0];
+            tState[blockDim.x + 1] = statein[0];
         }
         else
         {
-            tState[tadj] = statesin[(gid-1) + tadj];
+            tState[tadj] = statein[(gid-1) + tadj];
         }
     }
 }
@@ -72,6 +73,7 @@ void upTriangle(states *statein, states *stateout, int tstep)
     extern __shared__ states tState[];
 
     //Global Thread ID
+    int tid = threadIdx.x; // Thread index
     int gid = blockDim.x * blockIdx.x + threadIdx.x; 
     int tidx = threadIdx.x; //Block Thread ID
     int mid = blockDim.x >> 1;
@@ -80,7 +82,7 @@ void upTriangle(states *statein, states *stateout, int tstep)
     int idxes[3];
     for (int k=-1; k<2; k++) idxes[k+1] = tid + k;
 
-    tState[tidx] = statesin[gid];
+    tState[tidx] = statein[gid];
 
     __syncthreads();
 
@@ -116,16 +118,16 @@ void downTriangle(states *statein, states *stateout, int tstep)
     {
         if (tidx < (base-k) && tidx >= k)
         {
-                stepUpdate(temper, idxes, tnow);
+                stepUpdate(tState, idxes, tnow);
         }
         tnow++;
         __syncthreads();
     }
-    state[gid] = temper[tidx];
+    stateout[gid] = tState[tidx];
 }
 
 __global__
-void wholeTriangle(states *statein, states *stateout, int tstep, int dir)
+void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
 {
     extern __shared__ states tState[];
 
@@ -145,7 +147,7 @@ void wholeTriangle(states *statein, states *stateout, int tstep, int dir)
 	{
 		if (tidx < (base-k) && tidx >= k)
 		{
-        	stepUpdate(temper, tidx, tnow);
+        	stepUpdate(tState, idxes, tnow);
 		}
 		tnow++;
 		__syncthreads();
@@ -155,15 +157,15 @@ void wholeTriangle(states *statein, states *stateout, int tstep, int dir)
 	{
 		if (tidx < (base-k) && tidx >= k)
 		{
-            stepUpdate(temper, tidx, tnow);
+            stepUpdate(tState, idxes, tnow);
 		}
 		tnow++;
 		__syncthreads();
     }
-    state[gidout] = temper[tidx];
+    stateout[gidout] = tState[tidx];
 }
 
-void classicWrapper(states *state, int *tstep)
+double classicWrapper(states *state, int *tstep)
 {
     cout << "Classic scheme" << endl;
     states *dks_in;
@@ -194,10 +196,10 @@ void classicWrapper(states *state, int *tstep)
     return t_eq;
 }
 
-void sweptWrapper(states *state, int *tstep)
+double sweptWrapper(states *state, int *tstep)
 {
     cout << "Swept scheme" << endl;
-    REAL *stateA, *stateB;
+    states *stateA, *stateB;
     int tmine = *tstep;
     const int tBytes = cGlob.szState*cGlob.nX;
     const size_t smem = (cGlob.tpb + 2) * cGlob.szState;
@@ -222,12 +224,13 @@ void sweptWrapper(states *state, int *tstep)
 
         if (t_eq > twrite)
         {
-            downTriangle <<< cGlob.bks, cGlob.tpb, smem >>> (stateB, stateA, tmine, 1);
+            downTriangle <<< cGlob.bks, cGlob.tpb, smem >>> (stateB, stateA, tmine);
             cudaMemcpy(state, stateA, tBytes, cudaMemcpyDeviceToHost);
             twrite += cGlob.freq;
         }
     }
-    cudaMemcpy(state, dks_in, tBytes, cudaMemcpyDeviceToHost);
-    cudaFree(dks_in);
+    cudaMemcpy(state, stateA, tBytes, cudaMemcpyDeviceToHost);
+    cudaFree(stateA);
+    cudaFree(stateB);
     return t_eq;
 }

@@ -32,6 +32,7 @@
 #define HALF        0.5
 #define ONE         1.0
 #define TWO         2.0
+#define NSTEPS		2
 #define TSTEPI		2	// Initial step, normally 1 but here it's 2 bc two timesteps are exact and initial. (0, dt)
 
 typedef Json::Value jsons;
@@ -63,7 +64,7 @@ globalism cGlob;
 __host__ 
 void exactSolution(states *state, int n, int k)
 {
-	 state[n]->u[k] = cos(cGlob.dt*cGlob.w*cGlob.pi*k) * sin(cGlob.dx*cGlob.w*cGlob.pi*n);
+	 state[n].u[k] = cos(cGlob.dt*cGlob.w*cGlob.pi*k) * sin(cGlob.dx*cGlob.w*cGlob.pi*n);
 }
 
 // Leapfrog. 
@@ -71,10 +72,10 @@ __device__
 void stencil(states *state, int idx[3], int ins)
 {
     int offs = ins^1;
-    state[idx[1]]->u[ins] = TWO * state[idx[1]]->u[offs] * (1 - deqConsts.cFLsq) + deqConsts.cFLsq * (state[idx[0]]->u[offs] + state[idx+[2]]->u[offs]) - state[idx[1]]->u[ins];
+    state[idx[1]].u[ins] = TWO * state[idx[1]].u[offs] * (1 - deqConsts.cFLsq) + deqConsts.cFLsq * (state[idx[0]].u[offs] + state[idx[2]].u[offs] - state[idx[1]].u[ins]);
 }
 
-void equationSpecificArgs(jsons inJs);
+void equationSpecificArgs(jsons inJs)
 {
 	cGlob.c = inJs["c"].asDouble();
 	cGlob.w = inJs["w"].asDouble();
@@ -100,11 +101,11 @@ void equationSpecificArgs(jsons inJs);
 
 REAL errorNorm(states *state, REAL t)
 {
-    REAL *stateE = malloc(sizeof(REAL) * cGlob.nX);
+    REAL *stateE = malloc(sizeof(REAL) * cGlob.nX); //??
     REAL stateF = 0.0;
     REAL sq;
-    int sw = t&1;
-    for (int n=0; n<nX; n++) 
+    int sw = t&1; // Not t itself, the n timesteps
+    for (int n=0; n<cGlob.nX; n++) 
     {
         exactSolution(stateE, n, t); // t is tsteps
         sq = std::abs(stateE[n] - state[n].u[sw]);

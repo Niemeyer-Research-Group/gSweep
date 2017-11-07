@@ -125,7 +125,7 @@ void downTriangle(states *statein, states *stateout, int tstep)
     {
         if (tidx < (base-k) && tidx >= k)
         {
-                stepUpdate(temper, idxes, tnow);
+            stepUpdate(temper, idxes, tnow);
         }
         tnow++;
         __syncthreads();
