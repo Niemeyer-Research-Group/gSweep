@@ -25,7 +25,11 @@ import time
 SCHEMES = [
     "Classic",
     "Shared",
-    "Hybrid"
+]
+
+SYNC = [
+    "Implicit",
+    "Cooperative",
 ]
 
 OPTIONS = {
