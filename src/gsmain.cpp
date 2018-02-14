@@ -9,8 +9,8 @@
 //COMPILE LINE!
 // nvcc -o ./bin/KSOut KS1D_SweptShared.cu -gencode arch=compute_35,code=sm_35 -lm -restrict -Xcompiler -fopenmp --ptxas-options=-v
 
-#include "mainGlobals.h"
-#include "wave1D.h"
+#include "schemesReg.h"
+#include "schemesCoop.h"
 
 #define GPUNUM          0
 
@@ -22,8 +22,11 @@ int main(int argc, char *argv[])
     sout.append(ext); 
     std::string scheme = argv[1];
 
-    readIn(argc, argv);
-    initConsts();
+    std::ifstream injson(argv[2], std::ifstream::in);
+
+    Runners Runner <EQUATION, ALGORITHM> (injson);
+
+    injson.close();
 
     cudaSetDevice(GPUNUM);
     cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
@@ -35,7 +38,7 @@ int main(int argc, char *argv[])
     {
         for (int n=0; n<nX; n++) 
         {
-            exactSolution(state, n, k); // Macro perhaps
+            exactSolution(state, n, k);
         }
     }
 
@@ -45,10 +48,7 @@ int main(int argc, char *argv[])
 
     cudaEvent_t start, stop;
 	float timed;
-	cudaEventCreate( &start );
-	cudaEventCreate( &stop );
-    cudaEventRecord( start, 0);
-    
+
 	// Call the kernels until you reach the iteration limit.
 	double tfm;
 	if (!scheme.compare("C"))
@@ -64,10 +64,6 @@ int main(int argc, char *argv[])
         std::cerr << "Incorrect or no scheme given" << std::endl;
     }
 
-	// Show the time and write out the final condition.
-	cudaEventRecord(stop, 0);
-	cudaEventSynchronize(stop);
-    cudaEventElapsedTime( &timed, start, stop);
     
     timed *= 1.e3;
 

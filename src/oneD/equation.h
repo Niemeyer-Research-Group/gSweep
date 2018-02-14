@@ -21,8 +21,10 @@
 #include <vector>
 #include <algorithm>
 
+// UTILITIES PATH
 #include "myVectorTypes.h"
-#include "json/json.h"
+#include "../../json/json.h"
+#include "cudaUtils.h"
 
 #define REAL        double
 #define ZERO        0.0
@@ -30,38 +32,73 @@
 #define HALF        0.5
 #define ONE         1.0
 #define TWO         2.0
-#define TSTEPI		2	// Initial step, normally 1 but here it's 2 bc two timesteps are exact and initial. (0, dt)
+// Initial step, normally 1 but here it's 2 bc two timesteps are exact and initial. (0, dt)
 
-struct eqConsts{
-	REAL cFLsq;
-	int idxF, typ; //Type is Boundary condition type. 0 for periodic.
-};
+typedef Json::Value jsons;
+typedef std::istream inputf;
+typedef std::ostream outputf;
 
-__constant__ eqConsts deqConsts;
-eqConsts heqConsts;
-
-struct states{
-    REAL u[2];
-};
-
-// Damn. How should I encapsulate this.  Perhaps I should make a class.
-struct globalism{
-	REAL dt, dx, c, w, lx, tf, freq, cfl;
-	int tpb, bks, nX, szState;
-	const REAL pi = M_PI;
-};
-
-class equation
+class Equation
 {
+private:
+	REAL dt, dx, lx, tf, freq;
+	int tpb, bks, gridSize, szState;
+	const REAL pi = M_PI;
+	char sout, tout;
 
-	private:
-		
+	jsons inJ, solution;
+	outputf timingOut, solutionOut;
 
-	public:
+	void initializeGrid()
+	{
+		freq = inJ['freq'];
+		tpb = inJ['tpb'];
+		tf = inJ['tf'];
+	}
 
-		equation();
+	void initializeEquation(); // The specific constructor (needs to be called AFTER this constructor... HOW?)
 
-		__device__ __host__ void stepUpdate();
+	void parseArgs(int argc, char *argv[])
+	{
+		if (argc>4)
+		{
+			std::string inarg;
+			for (int k=4; k<argc; k+=2)
+			{
+				inarg = argv[k];
+				inJ[inarg] = atof(argv[k+1]);
+			}
+		}
+	}
+
+
+public:
+
+	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
+	{
+		inFile >> inJ;
+		parseArgs(argc, argv);
+		initializeGrid():
+	}
+
+	
+
+	void solutionOutput(states *outState, double tstamp, int idx, int strt)
+	{
+		std::string tsts = std::to_string(tstamp);
+		double xpt = indexer(cGlob.dx, idx, strt);
+		std::string xpts = std::to_string(xpt);
+		for (int k=0; k<NVARS; k++)
+		{
+			solution[outVars[k]][tsts][xpts] = printout(outState + idx, k);
+		}
+	}
+
+	// The uninitialized but guaranteed functions
+
+	REAL printout(states *state, int i);
+
+	__device__ __host__ void stepUpdate(states *state, int idx, int ins)
     
 };
 

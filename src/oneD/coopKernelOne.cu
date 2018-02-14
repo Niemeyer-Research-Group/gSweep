@@ -16,23 +16,6 @@ void stepUpdate(states *state, int idx[3], int tstep)
     stencil(state, idx, ins);
 }
 
-
-__device__ void boundary(int gid, int tid, int *idxes)
-{
-    idxes[1] = tid;
-    if (deqConsts.typ == 0)
-    {
-        idxes[0] = (gid) ? tid : deqconsts.idxF;
-        idxes[2] = (gid == deqConsts.idxF) ? 0 : tid;   
-    }
-    // // Reflective
-    // else
-    // {
-    //     if (gid == 1) state[0] = state[2];
-    //     if (gid = deqConsts.idxF-1) state[deqConsts.idxF] = state[deqConsts.idxF-2]; 
-    // }
-}
-
 __global__ 
 void classicStep(states *state, int nX, int tstart, int tend)
 {
@@ -43,7 +26,6 @@ void classicStep(states *state, int nX, int tstart, int tend)
     {
         for(int i = grid.thread_rank(); i < nX; i += grid.size())
         {
-            boundary(i, i, &idxes);
             stepUpdate(state, idxes, k);
         }
     }
