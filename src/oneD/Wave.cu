@@ -5,10 +5,8 @@
 /*
     This file is distribued under the MIT License.  See LICENSE at top level of directory or: <https://opensource.org/licenses/MIT>.
 */
-#ifndef WAVE_H
-#define WAVE_H
 
-#include "equation.h"
+#include "Wave.h"
 
 #define NSTEPS		2
 #define TSTEPI		2	
@@ -16,20 +14,17 @@ using namespace std;
 
 // These structs can be declared in abc, but we don't know what they are.
 
-struct states{
-    REAL u[2];
-};
-
 struct eqConsts{
 	REAL cFLsq;
 	int idxF;
-
-	
 };
 
 __constant__ eqConsts deqConsts;
 eqConsts heqConsts;
 
+struct states{
+    REAL u[2];
+};
 
 class Wave: public Equation
 {
@@ -38,7 +33,7 @@ private:
 
 public:
 	//??
-	Wave(jsons inJs)
+	Wave(jsons inJs) : Equation(jsons inJ)
 	{
 		cGlob.c = inJs["c"].asDouble();
 		cGlob.w = inJs["w"].asDouble();
@@ -93,5 +88,3 @@ REAL errorNorm(states *state, REAL t)
     return sq; // THe RMSE!
 }
 }
-
-#endif

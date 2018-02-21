@@ -23,7 +23,7 @@
 
 // UTILITIES PATH
 #include "myVectorTypes.h"
-#include "../../json/json.h"
+#include "json/json.h"
 #include "cudaUtils.h"
 
 #define REAL        double
@@ -38,11 +38,11 @@ typedef Json::Value jsons;
 typedef std::istream inputf;
 typedef std::ostream outputf;
 
-class Equation
+struct Equation
 {
 private:
 	REAL dt, dx, lx, tf, freq;
-	int tpb, bks, gridSize, szState;
+	int tpb, bks, gridSize, stateSize, bitSize;
 	const REAL pi = M_PI;
 	char sout, tout;
 
@@ -74,31 +74,15 @@ private:
 
 public:
 
-	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
-	{
-		inFile >> inJ;
-		parseArgs(argc, argv);
-		initializeGrid():
-	}
+	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="");
 
-	
-
-	void solutionOutput(states *outState, double tstamp, int idx, int strt)
-	{
-		std::string tsts = std::to_string(tstamp);
-		double xpt = indexer(cGlob.dx, idx, strt);
-		std::string xpts = std::to_string(xpt);
-		for (int k=0; k<NVARS; k++)
-		{
-			solution[outVars[k]][tsts][xpts] = printout(outState + idx, k);
-		}
-	}
+	void solutionOutput(states *outState, double tstamp, int idx, int strt);
 
 	// The uninitialized but guaranteed functions
 
 	REAL printout(states *state, int i);
 
-	__device__ __host__ void stepUpdate(states *state, int idx, int ins)
+	__device__ __host__ void stepUpdate(states *state, int idx, int ins);
     
 };
 

@@ -9,6 +9,8 @@
 #include "waveConsts.h"
 #include "mainGlobals.h"
 
+typedef std::string str
+
 // Leapfrog!
 __device__  
 void stepUpdate(states *state, int idx[3], int tstep)
@@ -147,6 +149,19 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
     }
     stateout[gidout] = tState[tidx];
 }
+
+<Class T>
+class Solver:
+    public:
+        states *hState, *dState;
+        //Some members
+
+        Solver(T Equation, str scheme, str kernelType){
+            cudaHostAlloc(hState, Equation.bitSize+2*Equation.stateSize)
+            T.makeInitialCondition(hState);
+        }
+        
+
 
 double classicWrapper(states *state, int *tstep)
 {
