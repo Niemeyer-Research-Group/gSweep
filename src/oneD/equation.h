@@ -4,65 +4,18 @@
 #ifndef EQ_H
 #define EQ_H
 
-#include <cuda.h>
-#include <cuda_runtime_api.h>
-#include <cuda_runtime.h>
-#include <device_functions.h>
+#include "equations/eqHead.h"
 
-#include <iostream>
-#include <fstream>
-#include <ostream>
-#include <istream>
-
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <string>
-#include <vector>
-#include <algorithm>
-
-// UTILITIES PATH
-#include "myVectorTypes.h"
-#include "json/json.h"
-#include "cudaUtils.h"
-
-#define REAL        double
-#define ZERO        0.0
-#define QUARTER     0.25
-#define HALF        0.5
-#define ONE         1.0
-#define TWO         2.0
-// Initial step, normally 1 but here it's 2 bc two timesteps are exact and initial. (0, dt)
-
-typedef Json::Value jsons;
-typedef std::istream inputf;
-typedef std::ostream outputf;
-
-struct Equation
+class Equation
 {
 private:
-	REAL dt, dx, lx, tf, freq;
-	int tpb, bks, gridSize, stateSize, bitSize;
-	const REAL pi = M_PI;
-	char sout, tout;
-
 	jsons inJ, solution;
-	outputf timingOut, solutionOut;
-
-	void initializeGrid()
-	{
-		freq = inJ['freq'];
-		tpb = inJ['tpb'];
-		tf = inJ['tf'];
-	}
-
-	void initializeEquation(); // The specific constructor (needs to be called AFTER this constructor... HOW?)
 
 	void parseArgs(int argc, char *argv[])
 	{
 		if (argc>4)
 		{
-			std::string inarg;
+			str inarg;
 			for (int k=4; k<argc; k+=2)
 			{
 				inarg = argv[k];
@@ -71,10 +24,29 @@ private:
 		}
 	}
 
-
 public:
+	REAL dt, lx, tf, freq;
+	int tpb, gridSize, stateSize, bitSize;
+	const REAL pi = M_PI;
+	char sout, tout;
+	double dx;
+	int bks;
+	outputf timingOut, solutionOut;
 
-	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="");
+	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
+	{
+		inFile >> inJ;
+		inFile.close();
+    	parseArgs(argc, argv);
+
+		stateSize = sizeof(states);
+		gridSize = inJ["nX"].asInt();
+		freq = inJ['freq'].asDouble();
+		tpb = inJ['tpb'].asInt();
+		tf = inJ['tf'].asDouble();
+		//bitSize = ;
+		specificInit(this);
+	};
 
 	void solutionOutput(states *outState, double tstamp, int idx, int strt);
 
@@ -82,8 +54,9 @@ public:
 
 	REAL printout(states *state, int i);
 
-	__device__ __host__ void stepUpdate(states *state, int idx, int ins);
-    
+	void writeSolution();
+
+	void writeTime();
 };
 
 #endif

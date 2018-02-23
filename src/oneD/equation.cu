@@ -10,7 +10,7 @@ Equation::Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
 Equation::solutionOutput(states *outState, double tstamp, int idx, int strt)
 {
     std::string tsts = std::to_string(tstamp);
-    double xpt = indexer(cGlob.dx, idx, strt);
+    double xpt = indexer(dx, idx, strt);
     std::string xpts = std::to_string(xpt);
     for (int k=0; k<NVARS; k++)
     {
@@ -18,6 +18,16 @@ Equation::solutionOutput(states *outState, double tstamp, int idx, int strt)
     }
 }
 
+
+Equation::writeSolution()
+{
+
+}
+
+Equation::writeTime()
+{
+
+}
 
 Equation::stepUpdate(states *state, int idx, int ins)
 {
