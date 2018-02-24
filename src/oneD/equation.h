@@ -1,6 +1,7 @@
-/*
+/**
     Base class for equations
 */
+
 #ifndef EQ_H
 #define EQ_H
 
@@ -10,6 +11,7 @@ class Equation
 {
 private:
 	jsons inJ, solution;
+	Specific *chosenEquation;
 
 	void parseArgs(int argc, char *argv[])
 	{
@@ -25,38 +27,51 @@ private:
 	}
 
 public:
-	REAL dt, lx, tf, freq;
+	str rdir
+	str tpath, spath;
+	double dt, lx, tf, freq;
 	int tpb, gridSize, stateSize, bitSize;
-	const REAL pi = M_PI;
 	char sout, tout;
 	double dx;
 	int bks;
-	outputf timingOut, solutionOut;
+	outputf solutionOut;
+
+	Equation(){};
 
 	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
 	{
 		inFile >> inJ;
 		inFile.close();
     	parseArgs(argc, argv);
+		chosenEquation = new *Specific();
 
 		stateSize = sizeof(states);
 		gridSize = inJ["nX"].asInt();
 		freq = inJ['freq'].asDouble();
 		tpb = inJ['tpb'].asInt();
 		tf = inJ['tf'].asDouble();
-		//bitSize = ;
-		specificInit(this);
+
+		tpath = rdir + "/t" + fspec + scheme + t_ext;
+		bitSize = stateSize*gridSize;
+
+		chosenEquation->initEq(inJ);
+
 	};
 
-	void solutionOutput(states *outState, double tstamp, int idx, int strt);
+	void makeInitialContidion(states *nState, int k);
+
+	void solutionOutput(states *outState, double tstamp, int k);
 
 	// The uninitialized but guaranteed functions
-
-	REAL printout(states *state, int i);
 
 	void writeSolution();
 
 	void writeTime();
+
+	~Equation()
+	{
+		delete[] chosenEquation;	
+	};
 };
 
 #endif

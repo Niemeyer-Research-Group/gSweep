@@ -10,9 +10,12 @@
 
 #include "rootHeader.h"
 
+/**
+	The beginning of the user defined scheme
+*/
+#define NVARS		1
 #define NSTEPS		2
 #define TSTEPI		2	
-#define 
 
 struct states{
     REAL u[2];
@@ -26,43 +29,53 @@ struct equationConstants{
 __constant__ equationConstants deqConstants;
 equationConstants heqConstants;
 
-namespace Wave
+struct Wave
 {
-	double c, w, cfl;
+	const double pi = M_PI;
+	double c, w, dt, dx;
+	double cfl;
+
+	void initEq(jsons inJs)
+	{	 
+		c = inJs["c"].asDouble();
+		w = inJs["w"].asDouble();
+		dt = inJs["dt"].asDouble();
+		cfl = inJs["cfl"].asDouble();
+		nX = inJs["nX"].asInt();
+
+		if (cfl>0) 
+		{
+			dt = cfl*dx/c;
+		}
+		else if(dt>0)
+		{
+			cfl = c*dt/dx;
+		}
+		else
+		{
+			cfl = 0.5;
+			dt = cfl*dx/c;
+		}
+
+		heqConstants.cflSQUARED = cfl * cfl;
+		heqConstants.lastIndex = nX-1;
+		//heqConstants.typ = 0;
+	}
+
+	static void initState(states *state, int n)
+	{
+		for (int k=0; k<2; k++) state[n].u[k] = cos(dt * w * pi * k) * sin(dx * w * pi * n);
+	}
+
+	double printout(states * state, int i)
+	{
+
+	}
 }
 
-void specificInit(Equation &e)
-{	 
-	using namespace Wave;
-	c = e.inJ["c"].asDouble();
-	w = e.inJs["w"].asDouble();
-	e.dt = e.inJs["dt"].asDouble();
-	cfl = e.inJs["cfl"].asDouble();
+typedef Wave Specific;
 
-	if (cfl>0) 
-	{
-		e.dt = cfl*e.dx/c;
-	}
-	else if(dt>0)
-	{
-		cfl = c*e.dt/e.dx;
-	}
-	else
-	{
-		cfl = 0.5;
-		e.dt = cfl*e.dx/c;
-	}
-
-	heqConstants.cflSQUARED = cfl * cfl;
-	heqConstants.lastIndex = e.gridSize-1;
-	//heqConstants.typ = 0;
-}
-
-void initializeState(Equation &e, states *state, int n, int k)
-{
-	using namespace Wave;
-	state[n].u[k] = cos(e.dt*w*e.pi*k) * sin(e.dx*w*e.pi*n);
-}
+// OTHER ELEMENTS OF THE SCHEME GO HERE
 
 // Leapfrog. 
 __device__  __host__

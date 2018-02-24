@@ -150,20 +150,12 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
     stateout[gidout] = tState[tidx];
 }
 
-<Class T>
-class Solver:
-    public:
-        states *hState, *dState;
-        //Some members
+void Solver::deviceCopy()
+{
+    
+}
 
-        Solver(T Equation, str scheme, str kernelType){
-            cudaHostAlloc(hState, Equation.bitSize+2*Equation.stateSize)
-            T.makeInitialCondition(hState);
-        }
-        
-
-
-double classicWrapper(states *state, int *tstep)
+void Solver::classic(str coopType)
 {
     cout << "Classic scheme" << endl;
     states *dks_in;
@@ -194,7 +186,7 @@ double classicWrapper(states *state, int *tstep)
     return t_eq;
 }
 
-double sweptWrapper(states *state, int *tstep)
+double Solver::swept(states *state, int *tstep)
 {
     cout << "Swept scheme" << endl;
     states *stateA, *stateB;
@@ -231,4 +223,22 @@ double sweptWrapper(states *state, int *tstep)
     cudaFree(stateA);
     cudaFree(stateB);
     return t_eq;
+}
+
+
+void Solver::solveEquation()
+{
+    if ()
+}
+
+void Solver::writeOut()
+{
+    cudaMemcpy(hState, dState, eq.bitsize, cudaMemcpyDeviceToHost);
+    for (int k=1; k<; k++) eq.solutionOutput(hState, tstep, k);
+}
+
+~Solver::Solver()
+{
+
+    cudaDeviceSynchronize();
 }
