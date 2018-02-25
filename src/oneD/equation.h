@@ -7,6 +7,8 @@
 
 #include "equations/eqHead.h"
 
+str defaultOut = "/something/From/Makefile";
+
 class Equation
 {
 private:
@@ -30,48 +32,28 @@ public:
 	str rdir
 	str tpath, spath;
 	double dt, lx, tf, freq;
-	int tpb, gridSize, stateSize, bitSize;
-	char sout, tout;
+	int tpb, gridSize, stateSize, bitSize, nWrite;
 	double dx;
 	int bks;
 	outputf solutionOut;
 
 	Equation(){};
 
-	Equation(inputf inFile, char* outpath, int argc=0, char *argv[]="")
-	{
-		inFile >> inJ;
-		inFile.close();
-    	parseArgs(argc, argv);
-		chosenEquation = new *Specific();
-
-		stateSize = sizeof(states);
-		gridSize = inJ["nX"].asInt();
-		freq = inJ['freq'].asDouble();
-		tpb = inJ['tpb'].asInt();
-		tf = inJ['tf'].asDouble();
-
-		tpath = rdir + "/t" + fspec + scheme + t_ext;
-		bitSize = stateSize*gridSize;
-
-		chosenEquation->initEq(inJ);
-
-	};
-
-	void makeInitialContidion(states *nState, int k);
-
-	void solutionOutput(states *outState, double tstamp, int k);
-
-	// The uninitialized but guaranteed functions
-
-	void writeSolution();
-
-	void writeTime();
+	Equation(inputf inFile, str outpath, int argc=0, char *argv[]="");
 
 	~Equation()
 	{
+		outputf solutionOut(spath.c_str(), std::ofstream::trunc);
+		solution["meta"] = inJ;
+		solutionOut << solution;
+		solutionOut.close();
 		delete[] chosenEquation;	
 	};
+
+
+	void makeInitialContidion(states *nState, int k);
+
+	void solutionOutput(states *outState, double tstamp);
 };
 
 #endif

@@ -9,12 +9,6 @@
 
 #include "waveConsts.h"
 
-__device__  
-void stepUpdate(states *state, int idx[3], int tstep)
-{
-    int ins = tstep&1; // In step with
-    stencil(state, idx, ins);
-}
 
 __global__ 
 void classicStep(states *state, int nX, int tstart, int tend)
@@ -171,7 +165,6 @@ void classicWrapper(states *state, int *tstep)
     tmine++;
 
     cudaMemcpy(state, stin, tBytes, cudaMemcpyDeviceToHost);
-    cudaFree(stin);
     return t_eq;
 }
 

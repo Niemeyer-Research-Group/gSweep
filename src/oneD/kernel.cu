@@ -6,18 +6,7 @@
     This file is distribued under the MIT License.  See LICENSE at top level of directory or: <https://opensource.org/licenses/MIT>.
 */
 
-#include "waveConsts.h"
-#include "mainGlobals.h"
-
-typedef std::string str
-
-// Leapfrog!
-__device__  
-void stepUpdate(states *state, int idx[3], int tstep)
-{
-    int ins = tstep&1; // In step with
-    stencil(state, idx, ins);
-}
+#include "kernel.h"
 
 __global__ 
 void classicStep(states *state, int ts)
@@ -150,95 +139,73 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
     stateout[gidout] = tState[tidx];
 }
 
-void Solver::deviceCopy()
-{
-    
-}
 
-void Solver::classic(str coopType)
+void Solver::classic()
 {
     cout << "Classic scheme" << endl;
-    states *dks_in;
-    int tmine = *tstep;
-    int tBytes = cGlob.szState*cGlob.nX;
-    cudaMalloc((void **)&dks_in, tBytes);
 
-    // Copy the initial conditions to the device array.
-    cudaMemcpy(dks_in, state, tBytes, cudaMemcpyHostToDevice);
-
-    double t_eq = NSTEPS * cGlob.dt;
-    double twrite = cGlob.freq - 0.25*cGlob.dt;
-
-    while (t_eq <= cGlob.tf)
+    while (t_eq <= eq.tf)
     {
-        classicStep <<< cGlob.bks, cGlob.tpb >>> (dks_in, tmine);
-        t_eq += cGlob.dt;
-        tmine++;
+        classicStep <<< eq.bks, eq.tpb >>> (dks_in, tstep);
+        t_eq += eq.dt;
+        tstep++;
 
         if (t_eq > twrite)
         {
-            cudaMemcpy(state, dks_in, tBytes, cudaMemcpyDeviceToHost);
-            twrite += cGlob.freq;
+            this->storeSolution();
+            twrite += eq.freq;
         }
     }
-    cudaMemcpy(state, dks_in, tBytes, cudaMemcpyDeviceToHost);
-    cudaFree(dks_in);
-    return t_eq;
 }
 
-double Solver::swept(states *state, int *tstep)
+void Solver::swept()
 {
-    cout << "Swept scheme" << endl;
-    states *stateA, *stateB;
-    int tmine = *tstep;
-    const int tBytes = cGlob.szState*cGlob.nX;
-    const size_t smem = (cGlob.tpb + 2) * cGlob.szState;
+    std::cout << "Swept scheme" << std::endl;
 
+    // WHy 2?
     cudaMalloc((void **)&stateA, tBytes);
     cudaMalloc((void **)&stateB, tBytes);
 
-    // Copy the initial conditions to the device array.
-    cudaMemcpy(stateA, state, tBytes, cudaMemcpyHostToDevice);
-
-    double t_eq = NSTEPS * cGlob.dt;
-    double twrite = cGlob.freq - 0.25*cGlob.dt;
     //inline dir = -1, split dir = 1 because passing after calculation.
-    upTriangle <<< cGlob.bks, cGlob.tpb, smem >>> (stateA, stateB, tmine);
-    wholeDiamond <<< cGlob.bks, cGlob.tpb, smem >>> (stateB, stateA, tmine, 1);
+    upTriangle <<< eq.bks, eq.tpb, smem >>> (stateA, stateB, tstep);
+    wholeDiamond <<< eq.bks, eq.tpb, smem >>> (stateB, stateA, tstep, 1);
 
-    while (t_eq <= cGlob.tf)
+    while (t_eq <= eq.tf)
     {
-        wholeDiamond <<< cGlob.bks, cGlob.tpb, smem >>> (stateA, stateB, tmine, -1);
-        t_eq += cGlob.dt;
-        tmine++;
+        wholeDiamond <<< eq.bks, eq.tpb, smem >>> (stateA, stateB, tstep, -1);
+        t_eq += eq.dt;
+        tstep++;
 
         if (t_eq > twrite)
         {
-            downTriangle <<< cGlob.bks, cGlob.tpb, smem >>> (stateB, stateA, tmine);
-            cudaMemcpy(state, stateA, tBytes, cudaMemcpyDeviceToHost);
-            twrite += cGlob.freq;
+            downTriangle <<< eq.bks, eq.tpb, smem >>> (stateB, stateA, tstep);
+            this->storeSolution();
+            twrite += eq.freq;
         }
-    }
-    cudaMemcpy(state, stateA, tBytes, cudaMemcpyDeviceToHost);
-    cudaFree(stateA);
-    cudaFree(stateB);
-    return t_eq;
+    }   
 }
-
 
 void Solver::solveEquation()
 {
     if ()
+
 }
 
-void Solver::writeOut()
+//Must be accessible from swept and classic.
+void Solver::storeSolution()
 {
     cudaMemcpy(hState, dState, eq.bitsize, cudaMemcpyDeviceToHost);
-    for (int k=1; k<; k++) eq.solutionOutput(hState, tstep, k);
+    eq.solutionOutput(hState, t_eq);
 }
 
-~Solver::Solver()
+void Solver::writeFiles(double timed)
 {
-
-    cudaDeviceSynchronize();
+    this->storeSolution();
+    double per_ts = timed/(double) tstep;
+    timeOut = fopen(tpath.c_str(), "a+");
+    fseek(timeOut, 0, SEEK_END);
+    int ft = ftell(timeOut);
+    if (!ft) fprintf(timeOut, "tpb,nX,time\n");
+    fprintf(timeOut, "%d,%d,%.8f\n", tpb, gridSize, per_ts;
+    fclose(timeOut);
 }

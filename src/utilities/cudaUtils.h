@@ -17,7 +17,7 @@ struct cudaTime
 {
     std::vector<double> times;
     cudaEvent_t start, stop;
-	float ti;
+	double ti;
     std::string typ = "GPU";
 
     cudaTime() {
@@ -30,13 +30,20 @@ struct cudaTime
 	    cudaEventDestroy( stop );
     }
 
-    void tinit(){ cudaEventRecord( start, 0); }
+    void tinit(){ cudaEventRecord( start, 0); };
 
     void tfinal() { 
         cudaEventRecord(stop, 0);
 	    cudaEventSynchronize(stop);
 	    cudaEventElapsedTime( &ti, start, stop);
-        times.push_back(ti); }
+        ti *= 1.0e3;
+        times.push_back(ti); 
+    };
+
+    void getLastTime()
+    {
+        return ti;
+    }
 
     int avgt() { 
         return std::accumulate(times.begin(), times.end(), 0)/ times.size();

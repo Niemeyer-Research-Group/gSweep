@@ -25,6 +25,8 @@ struct equationConstants{
 	REAL cflSQUARED;
 	int lastIndex;	
 };
+const str outVars[NVARS] = {"VELOCITY"}; 
+const str fspec = "Wave";
 
 __constant__ equationConstants deqConstants;
 equationConstants heqConstants;
@@ -69,7 +71,7 @@ struct Wave
 
 	double printout(states * state, int i)
 	{
-
+		return state->u[0];
 	}
 }
 
