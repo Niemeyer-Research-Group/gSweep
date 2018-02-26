@@ -1,8 +1,11 @@
+#ifdef GSWEEPUTIL_H
+#define  GSWEEPUTIL_H
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h>
 #include <device_functions.h>
-
+#include <new>
+#include <assert.h>
 #include <vector.h>
 
 void cudaRunCheck()
@@ -49,3 +52,19 @@ struct cudaTime
         return std::accumulate(times.begin(), times.end(), 0)/ times.size();
         }
 };
+
+// So set up class to generic equation class, pass in and choose new class.
+void setpt(equation *cp)
+{
+    turn_to<myclass> (cp);
+    
+}
+
+template <typename TO_T, typename FROM_T>
+inline void turn_to(FROM_T* p) 
+{ 
+    assert( sizeof(FROM_T) == sizeof(TO_T));
+    ::new(p) TO_T(); // use of placement new
+}
+
+#endif

@@ -11,6 +11,7 @@ str defaultOut = "/something/From/Makefile";
 
 class Equation
 {
+	friend specificInt(Equation e);
 private:
 	jsons inJ, solution;
 	Specific *chosenEquation;
