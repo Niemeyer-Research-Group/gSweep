@@ -43,25 +43,20 @@ struct Wave
 		w = inJs["w"].asDouble();
 		dt = inJs["dt"].asDouble();
 		cfl = inJs["cfl"].asDouble();
-		nX = inJs["nX"].asInt();
+		dx = inJs["dx"].asDouble();
+		nX = inJs["nX"].asDouble();
 
-		if (cfl>0) 
+		if (!cfl) 
 		{
-			dt = cfl*dx/c;
-		}
-		else if(dt>0)
-		{
-			cfl = c*dt/dx;
+			cfl=c*dt/dx;;
 		}
 		else
 		{
-			cfl = 0.5;
-			dt = cfl*dx/c;
+			c = cfl*dx/dt;
 		}
 
 		heqConstants.cflSQUARED = cfl * cfl;
 		heqConstants.lastIndex = nX-1;
-		//heqConstants.typ = 0;
 	}
 
 	static void initState(states *state, int n)

@@ -26,26 +26,15 @@ int main(int argc, char *argv[])
     str cooperation = argv[clargStart + 0];
     str scheme = argv[clargStart + 1];
     str infile = argv[clargStart + 2];
+    str outpath = argv[clargStart + 2];
 
-    Equation theEquation(infile, $SOMEOUTPATH$, argc, argv);
+    Equation theEquation(infile, outpath, argc-3, &argv[clargStart+3]);
 
-    Solver solveit()
+    Solver solveit(&theEquation, scheme, cooperation);
 
-    cudaTime timer;
-    timer.tinit();
-    //Call solveit.solveEquation()
-    timer.tfinal();
-    double timed = timer.getLastTime();
+    solveit.solveEquation();
 
-    
-    std::cerr << "Incorrect or no scheme given" << std::endl;
-
-    int n_timesteps = tfm/dt;
-
-    double per_ts = timed/(double)n_timesteps;
-
-    cout << n_timesteps << " timesteps" << endl;
-    cout << "Averaged " << per_ts << " microseconds (us) per timestep" << endl;
+    solveit.writeFiles();
 
     return 0;
 }

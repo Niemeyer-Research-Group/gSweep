@@ -21,12 +21,12 @@ Equation::Equation(inputf inFile, str outpath, int argc=0, char *argv[]="");
     freq = inJ['freq'].asDouble();
     dx = lx/(double)gridSize; // Spatial step
     bks = gridSize/tpb;
+    height = tpb/2;
 
     if (!freq) freq = tf*2.0;
 
-    rdir = outpath;
-    tpath = rdir + "/t" + fspec;
-    spath = rdir + "/s" + fspec;
+    tpath = outpath + "/t" + fspec;
+    spath = outpath + "/s" + fspec;
 
     nWrite = tf/freq + 2; //Future, use to preallocate solution array. (OR USE vector)
     inJ["dx"] = dx;
@@ -37,9 +37,10 @@ Equation::Equation(inputf inFile, str outpath, int argc=0, char *argv[]="");
 void Equation::makeInitialContidion(states *nState)
 {
     chosenEquation->initState(nState, idx)
+    solutionOutput(nState, 0.0);
 }
 
-Equation::solutionOutput(states *outState, double tstamp)
+void Equation::solutionOutput(states *outState, double tstamp)
 {
     str tsts = std::to_string(tstamp);
     for (int k=0; k<NVARS; k++)

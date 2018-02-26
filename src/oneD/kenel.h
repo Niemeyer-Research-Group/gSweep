@@ -12,7 +12,7 @@ private:
     size_t smem;
     states *hState, *dState;
     str kernelType, schemeType;
-    double t_eq, twrite;
+    double t_eq, twrite, timed;
 
     void storeSolution();
     void classic();
@@ -40,7 +40,6 @@ public:
         eq.makeInitialCondition(hState);
         cudaMemcpyToSymbol(deqConstants, &heqConstants, sizeof(equationConstants));
         cudaMemcpy(dState, hState, bitAlloc, cudaMemcpyHostToDevice);
-        this->storeSolution();
     }    
     ~Solver::Solver()
     {
