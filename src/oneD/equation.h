@@ -30,10 +30,9 @@ private:
 	}
 
 public:
-	str rdir
 	str tpath, spath;
 	double dt, lx, tf, freq;
-	int tpb, gridSize, stateSize, bitSize, nWrite;
+	int tpb, gridSize, stateSize, bitSize, nWrite, height;
 	double dx;
 	int bks;
 	outputf solutionOut;

@@ -142,13 +142,16 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
 
 void Solver::classic()
 {
+    eq.spath += "_Classic_Normal.json";
+    eq.tpath += "_Classic_Normal.csv";
     cout << "Classic scheme" << endl;
 
     while (t_eq <= eq.tf)
     {
-        classicStep <<< eq.bks, eq.tpb >>> (dks_in, tstep);
-        t_eq += eq.dt;
-        tstep++;
+        classicStep <<< eq.bks, eq.tpb >>> (dState, tstep);
+    
+        tstep ++;
+        t_eq += (eq.dt * tstep/NSTEPS);
 
         if (t_eq > twrite)
         {
@@ -160,35 +163,52 @@ void Solver::classic()
 
 void Solver::swept()
 {
+    eq.spath += "_Swept_Normal.json";
+    eq.tpath += "_Swept_Normal.csv";
     std::cout << "Swept scheme" << std::endl;
 
-    // WHy 2?
-    cudaMalloc((void **)&stateA, tBytes);
-    cudaMalloc((void **)&stateB, tBytes);
+    states *dState2;
+
+    cudaMalloc((void **)&dState2, bitAlloc);
 
     //inline dir = -1, split dir = 1 because passing after calculation.
-    upTriangle <<< eq.bks, eq.tpb, smem >>> (stateA, stateB, tstep);
-    wholeDiamond <<< eq.bks, eq.tpb, smem >>> (stateB, stateA, tstep, 1);
+    upTriangle <<< eq.bks, eq.tpb, smem >>> (dState, dState2, tstep);
+    wholeDiamond <<< eq.bks, eq.tpb, smem >>> (dState2, dState, tstep, 1);
 
     while (t_eq <= eq.tf)
     {
-        wholeDiamond <<< eq.bks, eq.tpb, smem >>> (stateA, stateB, tstep, -1);
-        t_eq += eq.dt;
-        tstep++;
+        wholeDiamond <<< eq.bks, eq.tpb, smem >>> (dState, dState2, tstep, -1);
+        tstep += eq.height;
+        t_eq += (eq.dt * tstep/NSTEPS);
 
         if (t_eq > twrite)
         {
-            downTriangle <<< eq.bks, eq.tpb, smem >>> (stateB, stateA, tstep);
+            downTriangle <<< eq.bks, eq.tpb, smem >>> (dState2, dState, tstep);
             this->storeSolution();
             twrite += eq.freq;
         }
     }   
+    cudaFree(dState2);
 }
 
 void Solver::solveEquation()
 {
-    if ()
-
+    cudaTime timer;
+    timer.tinit();
+    if (!schemeType.compare("S"))
+    {
+        this->swept();
+    }
+    else if (!schemeType.compare("C"))
+    {
+        this->classic();
+    }
+    else
+    {
+        std::cerr << "Incorrect or no scheme given! " << std::endl;
+    }
+    timer.tfinal();
+    timed = timer.getLastTime();
 }
 
 //Must be accessible from swept and classic.
@@ -198,11 +218,11 @@ void Solver::storeSolution()
     eq.solutionOutput(hState, t_eq);
 }
 
-void Solver::writeFiles(double timed)
+void Solver::writeFiles()
 {
     this->storeSolution();
     double per_ts = timed/(double) tstep;
-    timeOut = fopen(tpath.c_str(), "a+");
+    timeOut = fopen(eq.tpath.c_str(), "a+");
     fseek(timeOut, 0, SEEK_END);
     int ft = ftell(timeOut);
     if (!ft) fprintf(timeOut, "tpb,nX,time\n");
