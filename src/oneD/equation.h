@@ -7,11 +7,10 @@
 
 #include "equations/eqHead.h"
 
-str defaultOut = "/something/From/Makefile";
+//str defaultOut = "/something/From/Makefile";
 
 class Equation
 {
-	friend specificInt(Equation e);
 private:
 	jsons inJ, solution;
 	Specific *chosenEquation;
@@ -35,11 +34,8 @@ public:
 	int tpb, gridSize, stateSize, bitSize, nWrite, height;
 	double dx;
 	int bks;
-	outputf solutionOut;
 
-	Equation(){};
-
-	Equation(inputf inFile, str outpath, int argc=0, char *argv[]="");
+	Equation(inputf inFile, str outpath, int argc, char *argv[]);
 
 	~Equation()
 	{
@@ -51,7 +47,7 @@ public:
 	};
 
 
-	void makeInitialContidion(states *nState, int k);
+	void makeInitialCondition(states *nState);
 
 	void solutionOutput(states *outState, double tstamp);
 };

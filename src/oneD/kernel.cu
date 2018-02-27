@@ -7,7 +7,7 @@
 */
 
 #include "kernel.h"
-#include "coopKernel.h"
+//#include "coopKernel.h"
 
 __global__ 
 void classicStep(states *state, int ts)
@@ -28,7 +28,7 @@ void upTriangle(states *statein, states *stateout, int tstep)
     int gid = blockDim.x * blockIdx.x + threadIdx.x; 
     int tidx = threadIdx.x; //Block Thread ID
     int mid = blockDim.x >> 1;
-    int gidout = (gid - mid) % deqConsts.idxF;
+    int gidout = (gid - mid) % deqConstants.lastIndex;
     int tnow = tstep;
     int idxes[3];
     for (int k=-1; k<2; k++) idxes[k+1] = tid + k;
@@ -86,7 +86,7 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
     int mid = blockDim.x >> 1; // Half of block size
     int base = blockDim.x + 2; 
     int gid = blockDim.x * blockIdx.x + threadIdx.x;
-    int gidout = (gid + dir*mid) % deqConsts.idxF;
+    int gidout = (gid + dir*mid) % deqConstants.lastIndex;
     int tidx = tid + 1;
     int tnow = tstep; // read tstep into register.
     int idxes[3];
@@ -119,29 +119,29 @@ void wholeDiamond(states *statein, states *stateout, int tstep, int dir)
 
 void Solver::classic()
 {
-    eq.spath += "_Classic_Normal.json";
-    eq.tpath += "_Classic_Normal.csv";
+    eq->spath += "_Classic_Normal.json";
+    eq->tpath += "_Classic_Normal.csv";
     std::cout << "Classic scheme" << std::endl;
 
-    while (t_eq <= eq.tf)
+    while (t_eq <= eq->tf)
     {
-        classicStep <<< eq.bks, eq.tpb >>> (dState, tstep);
+        classicStep <<< eq->bks, eq->tpb >>> (dState, tstep);
     
-        tstep ++;
-        t_eq += (eq.dt * tstep/NSTEPS);
+        tstep++;
+        t_eq += (eq->dt * tstep/NSTEPS);
 
         if (t_eq > twrite)
         {
             this->storeSolution();
-            twrite += eq.freq;
+            twrite += eq->freq;
         }
     }
 }
 
 void Solver::swept()
 {
-    eq.spath += "_Swept_Normal.json";
-    eq.tpath += "_Swept_Normal.csv";
+    eq->spath += "_Swept_Normal.json";
+    eq->tpath += "_Swept_Normal.csv";
     std::cout << "Swept scheme" << std::endl;
 
     states *dState2;
@@ -149,20 +149,20 @@ void Solver::swept()
     cudaMalloc((void **)&dState2, bitAlloc);
 
     //inline dir = -1, split dir = 1 because passing after calculation.
-    upTriangle <<< eq.bks, eq.tpb, smem >>> (dState, dState2, tstep);
-    wholeDiamond <<< eq.bks, eq.tpb, smem >>> (dState2, dState, tstep, 1);
+    upTriangle <<< eq->bks, eq->tpb, smem >>> (dState, dState2, tstep);
+    wholeDiamond <<< eq->bks, eq->tpb, smem >>> (dState2, dState, tstep, 1);
 
-    while (t_eq <= eq.tf)
+    while (t_eq <= eq->tf)
     {
-        wholeDiamond <<< eq.bks, eq.tpb, smem >>> (dState, dState2, tstep, -1);
-        tstep += eq.height;
-        t_eq += (eq.dt * tstep/NSTEPS);
+        wholeDiamond <<< eq->bks, eq->tpb, smem >>> (dState, dState2, tstep, -1);
+        tstep += eq->height;
+        t_eq += (eq->dt * tstep/NSTEPS);
 
         if (t_eq > twrite)
         {
-            downTriangle <<< eq.bks, eq.tpb, smem >>> (dState2, dState, tstep);
+            downTriangle <<< eq->bks, eq->tpb, smem >>> (dState2, dState, tstep);
             this->storeSolution();
-            twrite += eq.freq;
+            twrite += eq->freq;
         }
     }   
     cudaFree(dState2);
@@ -191,18 +191,18 @@ void Solver::solveEquation()
 //Must be accessible from swept and classic.
 void Solver::storeSolution()
 {
-    cudaMemcpy(hState, dState, eq.bitsize, cudaMemcpyDeviceToHost);
-    eq.solutionOutput(hState, t_eq);
+    cudaMemcpy(hState, dState, eq->bitSize, cudaMemcpyDeviceToHost);
+    eq->solutionOutput(hState, t_eq);
 }
 
 void Solver::writeFiles()
 {
     this->storeSolution();
     double per_ts = timed/(double) tstep;
-    timeOut = fopen(eq.tpath.c_str(), "a+");
+    timeOut = fopen(eq->tpath.c_str(), "a+");
     fseek(timeOut, 0, SEEK_END);
     int ft = ftell(timeOut);
     if (!ft) fprintf(timeOut, "tpb,nX,time\n");
-    fprintf(timeOut, "%d,%d,%.8f\n", tpb, gridSize, per_ts;
+    fprintf(timeOut, "%d,%d,%.8f\n", eq->tpb, eq->gridSize, per_ts);
     fclose(timeOut);
 }

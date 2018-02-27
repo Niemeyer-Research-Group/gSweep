@@ -26,12 +26,12 @@ struct cudaTime
     cudaTime() {
         cudaEventCreate( &start );
 	    cudaEventCreate( &stop );
-    }
+    };
     ~cudaTime()
     {
         cudaEventDestroy( start );
 	    cudaEventDestroy( stop );
-    }
+    };
 
     void tinit(){ cudaEventRecord( start, 0); };
 
@@ -46,11 +46,11 @@ struct cudaTime
     void getLastTime()
     {
         return ti;
-    }
+    };
 
     int avgt() { 
         return std::accumulate(times.begin(), times.end(), 0)/ times.size();
-        }
+    };
 };
 
 // So set up class to generic equation class, pass in and choose new class.

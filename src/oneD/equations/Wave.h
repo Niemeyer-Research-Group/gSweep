@@ -8,7 +8,7 @@
 #ifndef WAVE_H
 #define WAVE_H
 
-#include "rootHeader.h"
+#include "../rootHeader.h"
 
 /**
 	The beginning of the user defined scheme
@@ -25,6 +25,7 @@ struct equationConstants{
 	REAL cflSQUARED;
 	int lastIndex, nX, tFinal;	
 };
+
 const str outVars[NVARS] = {"VELOCITY"}; 
 const str fspec = "Wave";
 
@@ -44,7 +45,7 @@ struct Wave
 		dt = inJs["dt"].asDouble();
 		cfl = inJs["cfl"].asDouble();
 		dx = inJs["dx"].asDouble();
-		nX = inJs["nX"].asDouble();
+		int nX = inJs["nX"].asDouble();
 
 		if (!cfl) 
 		{
@@ -58,18 +59,18 @@ struct Wave
 		heqConstants.cflSQUARED = cfl * cfl;
 		heqConstants.lastIndex = nX-1;
 		heqConstants.nX = nX;
-	}
+	};
 
-	static void initState(states *state, int n)
+	void initState(states *state, int n)
 	{
 		for (int k=0; k<2; k++) state[n].u[k] = cos(dt * w * pi * k) * sin(dx * w * pi * n);
-	}
+	};
 
-	double printout(states * state, int i)
+	double printout(states *state, int i)
 	{
-		return state->u[0];
-	}
-}
+		return state[i].u[0];
+	};
+};
 
 typedef Wave Specific;
 
@@ -77,10 +78,10 @@ typedef Wave Specific;
 
 // Leapfrog. 
 __device__  __host__
-void stepUpdate(states *state, int idx, int ins)
+void stepUpdate(states *state, int *idx, int ins)
 {
     int offs = ins^1;
-    state[idx[1]].u[ins] = TWO * state[idx[1]].u[offs] * (1 - deqConsts.cflSQUARED) + deqConsts.cflSQUARED * (state[idx[0]].u[offs] + state[idx[2]].u[offs] - state[idx[1]].u[ins]);
+    state[idx[1]].u[ins] = TWO * state[idx[1]].u[offs] * (1 - deqConstants.cflSQUARED) + deqConstants.cflSQUARED * (state[idx[0]].u[offs] + state[idx[2]].u[offs] - state[idx[1]].u[ins]);
 }
 
 // REAL errorNorm(states *state, REAL t)

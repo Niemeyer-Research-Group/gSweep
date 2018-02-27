@@ -2,6 +2,7 @@
 #define KERNELMAIN_H
 
 #include "equation.h"
+#include "cudaUtils.h"
 
 class Solver
 {
@@ -20,28 +21,26 @@ private:
 
 public:
     //Some members
-    Solver(const Equation *eqparam, str scheme, str kernel)
+    Solver(Equation *eqparam, str scheme, str kernel)
     {
         //I'd Prefer to work with a pointer.
         eq = eqparam; //Requires a copy constructor.
         kernelType = kernel;
         schemeType = scheme;
         tstep = TSTEPI;
-        bitAlloc = eq.bitSize + 2*eq.stateSize;
-        t_eq = NSTEPS * eq.dt;
-        twrite = eq.freq - 0.25*eq.dt;
-        smem = (eq.tpb + 2) * eq.stateSize;
+        bitAlloc = eq->bitSize + 2*eq->stateSize;
+        t_eq = NSTEPS * eq->dt;
+        twrite = eq->freq - 0.25*eq->dt;
+        smem = (eq->tpb + 2) * eq->stateSize;
+        
 
-        cudaSetDevice(GPUNUM);
-        cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
-
-        cudaHostAlloc((void **) &hstate, bitAlloc, cudaHostAllocDefault);
-        cudaMalloc((void **) &dstate, bitAlloc);
-        eq.makeInitialCondition(hState);
+        cudaHostAlloc((void **) &hState, bitAlloc, cudaHostAllocDefault);
+        cudaMalloc((void **) &dState, bitAlloc);
+        eq->makeInitialCondition(hState);
         cudaMemcpyToSymbol(deqConstants, &heqConstants, sizeof(equationConstants));
         cudaMemcpy(dState, hState, bitAlloc, cudaMemcpyHostToDevice);
     }    
-    ~Solver::Solver()
+    ~Solver()
     {
         cudaFreeHost(hState);
         cudaFree(dState);
@@ -50,7 +49,7 @@ public:
 
     void solveEquation();
 
-    void writeFiles(double timed);
+    void writeFiles();
 
 };
 

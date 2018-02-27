@@ -36,7 +36,10 @@ Equation::Equation(inputf inFile, str outpath, int argc=0, char *argv[]="");
 
 void Equation::makeInitialContidion(states *nState)
 {
-    chosenEquation->initState(nState, idx)
+    for (int i=0; i<gridSize; i++)
+    {
+        chosenEquation->initState(nState, i);
+    }
     solutionOutput(nState, 0.0);
 }
 

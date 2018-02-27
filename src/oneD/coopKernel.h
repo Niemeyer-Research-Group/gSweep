@@ -150,25 +150,46 @@ void sweptKernel(states *statein, states *stateout, int tstep)
     }
 }
 
-void Solver::classicCooperative(states *state, int *tstep)
+int getLaunch(void *func)
 {
+    int nbksm;
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, dev);
+
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&nbksm, func, tpb, 0));
+
+    return deviceProp.multiProcessorCount * nbksm;
+}
+
+void Solver::classicCooperative()
+{
+
+    void *kernelFunc = (void *) classicKernel;
+
+    bks = getLaunch(kernelFunc);
+
     eq.spath += "_Classic_Cooperative.json";
     eq.tpath += "_Classic_Cooperative.csv";
     std::cout << "Classic scheme" << std::endl;
+    void *args[] = {(void*)&dState, (void*) &tstep};
 
-    classicKernel <<< eq.bks, eq.tpb >>> (dState, tstep);
+    cudaLaunchCooperativeKernel(kernelFunc, bks, tpb, args, NULL, NULL);
 }
 
-void Solver::sweptCooperative(states *state, int *tstep)
+void Solver::sweptCooperative()
 {
     eq.spath += "_Swept_Cooperative.json";
     eq.tpath += "_Swept_Cooperative.csv";
     std::cout << "Swept scheme" << std::endl;
     states *dState2;
 
-    cudaMalloc((void **)&dState2, bitAlloc);
+    void *kernelFunc = (void *) classicKernel;
+    bks = getLaunch(kernelFunc);
 
-    sweptKernel <<< eq.bks, eq.tpb, smem >>> (dState, dState2, tstep);
+    cudaMalloc((void **)&dState2, bitAlloc);
+    void **args[3] = {dState, dState2, &tstep};
+    
+    cudaLaunchCooperativeKernel(kernelFunc, bks, tpb, args, smem, NULL);
 
     cudaFree(dState2);
 }

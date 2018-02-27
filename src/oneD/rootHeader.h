@@ -31,8 +31,8 @@
 #define TWO         2.0
 
 typedef Json::Value jsons;
-typedef std::istream inputf;
-typedef std::ostream outputf;
+typedef std::ifstream inputf;
+typedef std::ofstream outputf;
 typedef std::string str;
 
 #endif

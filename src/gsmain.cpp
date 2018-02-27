@@ -28,6 +28,9 @@ int main(int argc, char *argv[])
     str infile = argv[clargStart + 2];
     str outpath = argv[clargStart + 2];
 
+    cudaSetDevice(GPUNUM);
+    cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte);
+
     Equation theEquation(infile, outpath, argc-3, &argv[clargStart+3]);
 
     Solver solveit(&theEquation, scheme, cooperation);

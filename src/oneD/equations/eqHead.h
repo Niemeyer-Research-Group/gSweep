@@ -1,7 +1,9 @@
 #ifndef EQHEAD_H
 #define EQHEAD_H
 
-#ifndef WAVE
+#include "../rootHeader.h"
+
+#ifdef Wave
     #include "Wave.h"
 #endif
 
