@@ -23,7 +23,7 @@ struct states{
 
 struct equationConstants{
 	REAL cflSQUARED;
-	int lastIndex;	
+	int lastIndex, nX, tFinal;	
 };
 const str outVars[NVARS] = {"VELOCITY"}; 
 const str fspec = "Wave";
@@ -57,6 +57,7 @@ struct Wave
 
 		heqConstants.cflSQUARED = cfl * cfl;
 		heqConstants.lastIndex = nX-1;
+		heqConstants.nX = nX;
 	}
 
 	static void initState(states *state, int n)
@@ -79,7 +80,7 @@ __device__  __host__
 void stepUpdate(states *state, int idx, int ins)
 {
     int offs = ins^1;
-    state[idx[1]].u[ins] = TWO * state[idx[1]].u[offs] * (1 - deqConsts.cFLsq) + deqConsts.cFLsq * (state[idx[0]].u[offs] + state[idx[2]].u[offs] - state[idx[1]].u[ins]);
+    state[idx[1]].u[ins] = TWO * state[idx[1]].u[offs] * (1 - deqConsts.cflSQUARED) + deqConsts.cflSQUARED * (state[idx[0]].u[offs] + state[idx[2]].u[offs] - state[idx[1]].u[ins]);
 }
 
 // REAL errorNorm(states *state, REAL t)
