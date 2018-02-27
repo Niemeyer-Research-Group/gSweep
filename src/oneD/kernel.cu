@@ -7,6 +7,7 @@
 */
 
 #include "kernel.h"
+#include "coopKernel.h"
 
 __global__ 
 void classicStep(states *state, int ts)
@@ -15,30 +16,6 @@ void classicStep(states *state, int ts)
     int idxes[3];
     
     stepUpdate(state, idxes, ts);
-}
-
-__device__
-__forceinline__
-void sweepRead(states *tState, states *statein, int gid, int tid, int bd)
-{
-    int tadj = tid * (bd + 1);
-    tState[tid+1] = statein[gid];
-    __syncthreads();
-    if (tid<2)
-    {
-        if (gid == 0)
-        {
-            tState[0] = statein[deqConsts.idxF];
-        }   
-        else if (gid == deqConsts.idxF)
-        {
-            tState[blockDim.x + 1] = statein[0];
-        }
-        else
-        {
-            tState[tadj] = statein[(gid-1) + tadj];
-        }
-    }
 }
 
 __global__
@@ -144,7 +121,7 @@ void Solver::classic()
 {
     eq.spath += "_Classic_Normal.json";
     eq.tpath += "_Classic_Normal.csv";
-    cout << "Classic scheme" << endl;
+    std::cout << "Classic scheme" << std::endl;
 
     while (t_eq <= eq.tf)
     {
